@@ -18,7 +18,7 @@ def hash_password(plain: str) -> str:
 def verify_password(plain: str, hashed: str) -> bool:
     try:
         return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
-    except ValueError:
+    except Exception:
         return False
 
 
@@ -52,7 +52,7 @@ def require_role(*roles: str):
 
 async def authenticate_user(email: str, password: str) -> dict:
     async with httpx.AsyncClient(base_url=DATOS_URL) as client:
-        r = await client.get(f"/usuarios/email/{email}")
+        r = await client.get(f"/usuarios/internal/email/{email}")  # ← /internal/
         if r.status_code == 404:
             raise HTTPException(
                 status.HTTP_401_UNAUTHORIZED, "Credenciales incorrectas"

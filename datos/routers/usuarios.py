@@ -13,13 +13,28 @@ class UsuarioIn(BaseModel):
     contrasena_hash: str
 
 
+def safe_user(row) -> dict:
+    d = row_to_dict(row)
+    d.pop("contrasena_hash", None)
+    return d
+
+
 @router.get("/email/{email}")
 def por_email(email: str):
     with db() as conn:
         row = conn.execute("SELECT * FROM usuarios WHERE email=?", (email,)).fetchone()
     if not row:
         raise HTTPException(404, "Usuario no encontrado")
-    return row_to_dict(row)
+    return safe_user(row)  # sin hash — para uso general
+
+
+@router.get("/internal/email/{email}")  # ← nuevo, solo para authenticate_user
+def por_email_internal(email: str):
+    with db() as conn:
+        row = conn.execute("SELECT * FROM usuarios WHERE email=?", (email,)).fetchone()
+    if not row:
+        raise HTTPException(404, "Usuario no encontrado")
+    return row_to_dict(row)  # con hash — solo lo llama la capa de aplicación
 
 
 @router.get("/{id}")
@@ -28,7 +43,7 @@ def obtener(id: int):
         row = conn.execute("SELECT * FROM usuarios WHERE id=?", (id,)).fetchone()
     if not row:
         raise HTTPException(404, "Usuario no encontrado")
-    return row_to_dict(row)
+    return safe_user(row)
 
 
 @router.get("/procuraduria/{pid}")
@@ -37,7 +52,7 @@ def por_procuraduria(pid: int):
         rows = conn.execute(
             "SELECT * FROM usuarios WHERE procuraduria_id=?", (pid,)
         ).fetchall()
-    return [row_to_dict(r) for r in rows]
+    return [safe_user(r) for r in rows]
 
 
 @router.post("/", status_code=201)
