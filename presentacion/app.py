@@ -11,6 +11,60 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background-color: #f5f7fb;
+    }
+    .block-container {
+        padding-top: 1.5rem;
+        padding-bottom: 2rem;
+    }
+    div[data-testid="stSidebar"] {
+        background-color: #eef2f7;
+        border-right: 1px solid #dfe5ee;
+    }
+    div[data-testid="stSidebar"] .st-bb {
+        background-color: #eef2f7;
+    }
+    .stTextInput > div > div > input,
+    .stTextArea > div > textarea,
+    .stSelectbox > div > div,
+    .stNumberInput > div > div > input {
+        background-color: #ffffff;
+        border: 1px solid #d0d7e2;
+        border-radius: 6px;
+    }
+    .stButton > button {
+        background-color: #2f4b66;
+        color: white;
+        border: 1px solid #2f4b66;
+        border-radius: 6px;
+    }
+    .stButton > button:hover {
+        background-color: #264156;
+        color: white;
+        border: 1px solid #264156;
+    }
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 6px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        background-color: #f0f3f8;
+        color: #2f4b66;
+        border-radius: 6px 6px 0 0;
+        padding: 8px 12px;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #ffffff;
+        border-bottom: 2px solid #2f4b66;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # ── HTTP helpers ─────────────────────────────────────────────────
 
 
@@ -54,7 +108,18 @@ for key, val in {
 
 
 def page_login():
-    st.markdown("## ⚖️ LociaPro — Acceso")
+    st.markdown("## Sistema de gestión legal")
+    st.markdown("### Acceso al sistema")
+    st.caption("Ingrese sus credenciales para continuar.")
+    st.markdown("<hr style='margin: 0.5rem 0 1rem 0; border: 0; border-top: 1px solid #dfe5ee;'>", unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style="background-color:#f4f6fa;padding:16px;border-radius:8px;border:1px solid #dfe5ee;margin-bottom:20px;">
+    <strong>Acceso institucional</strong><br>
+    Este portal permite consultar información jurídica, revisar expedientes sueltos y gestionar conversaciones de apoyo legal.
+    </div>
+    """, unsafe_allow_html=True)
+
     with st.form("login"):
         email = st.text_input("Correo institucional")
         password = st.text_input("Contraseña", type="password")
@@ -73,7 +138,7 @@ def page_login():
                 else f"Error: {e.response.text}"
             )
         except Exception as e:
-            st.error(f"No se pudo conectar con el servidor: {e}")
+            st.error(f"No se pudo conectar con la capa de aplicación: {e}")
 
 
 # ════════════════════════════════════════════════════════════════
@@ -84,25 +149,25 @@ def page_login():
 def sidebar():
     user = st.session_state.user
     with st.sidebar:
-        st.markdown(f"### ⚖️ LociaPro")
-        st.caption(f"**{user['nombre']}**")
+        st.markdown("### LociaPro")
+        st.caption(f"{user['nombre']}")
         st.caption(f"{user['email']}")
-        st.caption(f"Rol: `{user['rol']}`")
+        st.caption(f"Rol: {user['rol']}")
         st.divider()
 
-        page = st.radio(
-            "Navegación",
-            ["🤖 Asistente Legal", "📂 Expedientes Sueltos", "🗂 Mis conversaciones"],
-            label_visibility="collapsed",
-        )
+        opciones = ["Asistente legal", "Expedientes sueltos", "Mis conversaciones"]
+        if user["rol"] == "admin":
+            opciones.append("Administración")
+
+        page = st.radio("Navegación", opciones, label_visibility="collapsed")
 
         if user["rol"] == "admin":
             st.divider()
-            if st.button("🔄 Re-indexar FAISS", use_container_width=True):
+            if st.button("Re-indexar FAISS", use_container_width=True):
                 with st.spinner("Indexando PDFs..."):
                     try:
                         r = api_post("/gestion/faiss/ingest")
-                        st.success(f"✅ {r.get('chunks', '?')} fragmentos indexados")
+                        st.success(f"{r.get('chunks', '?')} fragmentos indexados")
                     except Exception as e:
                         st.error(str(e))
 
@@ -121,8 +186,9 @@ def sidebar():
 
 
 def page_chat():
-    st.markdown("## 🤖 Consulta Jurídica")
-    st.caption("Respuestas basadas en la Constitución, Códigos y registros internos")
+    st.markdown("## Asistente legal")
+    st.caption("Respuestas basadas en la Constitución, códigos y registros internos.")
+    st.markdown("<hr style='margin: 0.4rem 0 1rem 0; border: 0; border-top: 1px solid #dfe5ee;'>", unsafe_allow_html=True)
 
     col_chat, col_hist = st.columns([3, 1])
 
@@ -134,7 +200,7 @@ def page_chat():
         except Exception:
             chats = []
 
-        if st.button("➕ Nueva consulta", use_container_width=True):
+        if st.button("Nueva consulta", use_container_width=True):
             st.session_state.chat_id = None
             st.session_state.mensajes = []
             st.rerun()
@@ -192,7 +258,10 @@ def page_chat():
 
 
 def page_sueltos():
-    st.markdown("## 📂 Expedientes y Registros Sueltos")
+    st.markdown("## Expedientes y registros sueltos")
+    st.caption("Gestión de casos, perfiles y expedientes de forma organizada.")
+    st.markdown("<hr style='margin: 0.4rem 0 1rem 0; border: 0; border-top: 1px solid #dfe5ee;'>", unsafe_allow_html=True)
+
     tab_ver, tab_nuevo = st.tabs(["Buscar", "Agregar"])
 
     with tab_ver:
@@ -244,8 +313,7 @@ def page_sueltos():
                             "metadata": metadata,
                         },
                     )
-                    st.success(f"✅ Guardado con ID {r['id']}")
-                    st.balloons()
+                    st.success(f"Registro guardado correctamente con ID {r['id']}")
                 except json.JSONDecodeError:
                     st.error("Metadata no es JSON válido")
                 except Exception as e:
@@ -258,7 +326,9 @@ def page_sueltos():
 
 
 def page_conversaciones():
-    st.markdown("## 🗂 Historial de Conversaciones")
+    st.markdown("## Historial de conversaciones")
+    st.caption("Consulta el registro de interacciones previas del usuario.")
+    st.markdown("<hr style='margin: 0.4rem 0 1rem 0; border: 0; border-top: 1px solid #dfe5ee;'>", unsafe_allow_html=True)
     try:
         chats = api_get("/consultas/chats")
     except Exception as e:
@@ -276,7 +346,7 @@ def page_conversaciones():
             try:
                 msgs = api_get(f"/consultas/chats/{c['id']}/mensajes")
                 for m in msgs:
-                    prefix = "👤" if m["rol"] == "usuario" else "🤖"
+                    prefix = "Usuario" if m["rol"] == "usuario" else "Asistente"
                     st.markdown(
                         f"{prefix} **{m['rol'].capitalize()}**: {m['contenido']}"
                     )
@@ -284,12 +354,61 @@ def page_conversaciones():
             except Exception as e:
                 st.error(str(e))
 
-            if st.button(f"🗑 Eliminar", key=f"del_{c['id']}"):
+            if st.button(f"Eliminar", key=f"del_{c['id']}"):
                 try:
                     api_delete(f"/consultas/chats/{c['id']}")
                     st.rerun()
                 except Exception as e:
                     st.error(str(e))
+
+
+def page_admin():
+    st.markdown("## Administración")
+    st.caption("El registro de usuarios está habilitado únicamente para administradores.")
+    st.markdown("<hr style='margin: 0.4rem 0 1rem 0; border: 0; border-top: 1px solid #dfe5ee;'>", unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style="background-color:#f4f6fa;padding:14px;border-radius:8px;border:1px solid #dfe5ee;margin-bottom:16px;">
+    <strong>Módulo de administración</strong><br>
+    Desde aquí se pueden crear nuevas cuentas con permisos definidos para el sistema.
+    </div>
+    """, unsafe_allow_html=True)
+
+    with st.form("register_user"):
+        procuraduria_id = st.number_input(
+            "ID de procuraduría", min_value=1, step=1, value=1
+        )
+        nombre = st.text_input("Nombre completo")
+        email = st.text_input("Correo institucional")
+        password = st.text_input("Contraseña", type="password")
+        rol = st.selectbox("Rol", ["asistente", "procurador"])
+        submit = st.form_submit_button("Crear usuario", use_container_width=True)
+
+    if submit:
+        if not nombre or not email or not password:
+            st.error("Complete todos los campos obligatorios.")
+        else:
+            try:
+                api_post(
+                    "/auth/register",
+                    {
+                        "procuraduria_id": int(procuraduria_id),
+                        "nombre": nombre,
+                        "email": email,
+                        "password": password,
+                        "rol": rol,
+                    },
+                )
+                st.success("Usuario creado correctamente.")
+            except httpx.HTTPStatusError as e:
+                detail = e.response.text
+                st.error(
+                    "No se pudo crear el usuario."
+                    if e.response.status_code == 409
+                    else detail
+                )
+            except Exception as e:
+                st.error(f"No se pudo completar el registro: {e}")
 
 
 # ════════════════════════════════════════════════════════════════
@@ -300,12 +419,14 @@ if not st.session_state.token:
     page_login()
 else:
     page = sidebar()
-    if page == "🤖 Asistente Legal":
+    if page == "Asistente legal":
         page_chat()
-    elif page == "📂 Expedientes Sueltos":
+    elif page == "Expedientes sueltos":
         page_sueltos()
-    elif page == "🗂 Mis conversaciones":
+    elif page == "Mis conversaciones":
         page_conversaciones()
+    elif page == "Administración":
+        page_admin()
 
 
 def start():

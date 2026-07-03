@@ -46,7 +46,10 @@ async def login(body: LoginIn):
 
 
 @router.post("/register", status_code=201)
-async def register(body: RegisterIn):
+async def register(
+    body: RegisterIn,
+    _: dict = Depends(auth.require_role("admin")),
+):
     payload = {
         "procuraduria_id": body.procuraduria_id,
         "nombre": body.nombre,
